@@ -17,5 +17,12 @@
         "psr-4": {
             "Rutatiina\\Receipt\\": "src/"
         }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Rutatiina\\Receipt\\ReceiptServiceProvider"
+            ]
+        }
     }
 }

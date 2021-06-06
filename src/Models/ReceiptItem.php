@@ -46,9 +46,19 @@ class ReceiptItem extends Model
         }
     }
 
+    public function receipt()
+    {
+        return $this->hasOne('Rutatiina\Receipt\Models\Receipt', 'id', 'receipt_id');
+    }
+
     public function invoice()
     {
         return $this->hasOne('Rutatiina\Invoice\Models\Invoice', 'id', 'invoice_id');
+    }
+
+    public function taxes()
+    {
+        return $this->hasMany('Rutatiina\Receipt\Models\ReceiptItemTax', 'receipt_item_id', 'id');
     }
 
 }

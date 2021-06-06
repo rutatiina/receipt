@@ -18,6 +18,9 @@ use Rutatiina\Receipt\Models\Receipt;
 use Rutatiina\Banking\Models\Account as BankAccount;
 use Rutatiina\Contact\Models\Contact;
 use Rutatiina\Contact\Traits\ContactTrait;
+use Rutatiina\Receipt\Services\PreValidationService;
+use Rutatiina\Receipt\Services\ReceiptService;
+use Rutatiina\RetainerInvoice\Services\RetainerInvoiceService;
 use Yajra\DataTables\Facades\DataTables;
 
 use Rutatiina\Receipt\Classes\Store as TxnStore;
@@ -64,19 +67,11 @@ class ReceiptController extends Controller
 
         $txns = $query->latest()->paginate($request->input('per_page', 20));
 
-        $txns->load('debit_account');
+        $txns->load('debit_financial_account');
 
         return [
             'tableData' => $txns
         ];
-    }
-
-    private function nextNumber()
-    {
-        $txn = Receipt::latest()->first();
-        $settings = Setting::first();
-
-        return $settings->number_prefix . (str_pad((optional($txn)->number + 1), $settings->minimum_number_length, "0", STR_PAD_LEFT)) . $settings->number_postfix;
     }
 
     public function create()
@@ -91,8 +86,7 @@ class ReceiptController extends Controller
 
         $txnAttributes = (new Receipt())->rgGetAttributes();
 
-        $txnAttributes['number'] = $this->nextNumber();
-
+        $txnAttributes['number'] = ReceiptService::nextNumber();
         $txnAttributes['status'] = 'approved';
         $txnAttributes['contact_id'] = '';
         $txnAttributes['contact'] = json_decode('{"currencies":[]}'); #required
@@ -100,19 +94,10 @@ class ReceiptController extends Controller
         $txnAttributes['base_currency'] = $tenant->base_currency;
         $txnAttributes['quote_currency'] = $tenant->base_currency;
         $txnAttributes['taxes'] = json_decode('{}');
-        $txnAttributes['isRecurring'] = false;
-        $txnAttributes['recurring'] = [
-            'date_range' => [],
-            'day_of_month' => '*',
-            'month' => '*',
-            'day_of_week' => '*',
-        ];
         $txnAttributes['contact_notes'] = null;
         $txnAttributes['terms_and_conditions'] = null;
         $txnAttributes['items'] = [];
 
-        unset($txnAttributes['txn_entree_id']); //!important
-        unset($txnAttributes['txn_type_id']); //!important
         unset($txnAttributes['debit_contact_id']); //!important
         unset($txnAttributes['credit_contact_id']); //!important
 
@@ -131,28 +116,13 @@ class ReceiptController extends Controller
     {
         //return $request->all();
 
-        // >> format posted data
-        $preValidation = (new PreValidation())->run($request->all());
+        $storeService = ReceiptService::store($request);
 
-        if ($preValidation['status'] == false)
-        {
-            return $preValidation;
-        }
-
-        $data = $preValidation['data'];
-
-        // << format posted data
-
-
-        $TxnStore = new TxnStore();
-        $TxnStore->txnInsertData = $data;
-        $insert = $TxnStore->run();
-
-        if ($insert == false)
+        if ($storeService == false)
         {
             return [
                 'status' => false,
-                'messages' => $TxnStore->errors
+                'messages' => ReceiptService::$errors
             ];
         }
 
@@ -160,7 +130,7 @@ class ReceiptController extends Controller
             'status' => true,
             'messages' => ['Receipt saved'],
             'number' => 0,
-            'callback' => URL::route('receipts.show', [$insert->id], false)
+            'callback' => URL::route('receipts.show', [$storeService->id], false)
         ];
     }
 
@@ -172,11 +142,15 @@ class ReceiptController extends Controller
             return view('l-limitless-bs4.layout_2-ltr-default.appVue');
         }
 
-        if (FacadesRequest::wantsJson())
-        {
-            $TxnRead = new TxnRead();
-            return $TxnRead->run($id);
-        }
+        $txn = Receipt::findOrFail($id);
+        $txn->load('contact', 'items.taxes');
+        $txn->setAppends([
+            'taxes',
+            'number_string',
+            'total_in_words',
+        ]);
+
+        return $txn->toArray();
     }
 
     public function edit($id)
@@ -187,38 +161,10 @@ class ReceiptController extends Controller
             return view('l-limitless-bs4.layout_2-ltr-default.appVue');
         }
 
-        //get the receipt details
-        $receipt = Receipt::findOrFail($id);
-
-        $receipt->load('contact', 'debit_account', 'credit_account', 'items.invoice');
-
-        $contact = $receipt->contact;
-
-        $txnAttributes = $receipt->toArray();
-
-        $txnAttributes['_method'] = 'PATCH';
-
-        //the contact parameter has to be formatted like the data for the drop down
-        $txnAttributes['contact'] = [
-            'id' => $contact->id,
-            'tenant_id' => $contact->tenant_id,
-            'display_name' => $contact->display_name,
-            'currencies' => $contact->currencies_and_exchange_rates,
-            'currency' => $contact->currency_and_exchange_rate,
-        ];
-
-        foreach ($txnAttributes['items'] as &$item)
-        {
-            $item['selectedTaxes'] = [];
-
-            $item['txn_contact_id'] = $item['invoice']['debit_contact_id'];
-            $item['txn_number'] = $item['invoice']['number_string'];
-            $item['max_receipt_amount'] = $item['invoice']['balance'];
-            $item['txn_exchange_rate'] = $item['invoice']['exchange_rate'];
-        }
+        $txnAttributes = ReceiptService::edit($id);
 
         $data = [
-            'pageTitle' => 'Edit Receipt', #required
+            'pageTitle' => 'Edit receipt', #required
             'pageAction' => 'Edit', #required
             'txnUrlStore' => '/receipts/' . $id, #required
             'txnAttributes' => $txnAttributes, #required
@@ -231,27 +177,13 @@ class ReceiptController extends Controller
     {
         //return $request->all();
 
-        // >> format posted data
-        $preValidation = (new PreValidation())->run($request->all());
+        $storeService = ReceiptService::update($request);
 
-        if ($preValidation['status'] == false)
-        {
-            return $preValidation;
-        }
-
-        $data = $preValidation['data'];
-
-        // << format posted data
-
-        $TxnStore = new TxnUpdate();
-        $TxnStore->txnInsertData = $data;
-        $insert = $TxnStore->run();
-
-        if ($insert == false)
+        if ($storeService == false)
         {
             return [
                 'status' => false,
-                'messages' => $TxnStore->errors
+                'messages' => ReceiptService::$errors
             ];
         }
 
@@ -259,26 +191,27 @@ class ReceiptController extends Controller
             'status' => true,
             'messages' => ['Receipt updated'],
             'number' => 0,
-            'callback' => URL::route('receipts.show', [$insert->id], false)
+            'callback' => URL::route('receipts.show', [$storeService->id], false)
         ];
     }
 
     public function destroy($id)
     {
-        $delete = Receipt::delete($id);
+        $destroy = ReceiptService::destroy($id);
 
-        if ($delete)
+        if ($destroy)
         {
             return [
                 'status' => true,
-                'message' => 'Receipt deleted',
+                'messages' => ['Receipt deleted'],
+                'callback' => URL::route('receipts.index', [], false)
             ];
         }
         else
         {
             return [
                 'status' => false,
-                'message' => implode('<br>', array_values(Transaction::$rg_errors))
+                'messages' => RetainerInvoiceService::$errors
             ];
         }
     }
@@ -287,14 +220,13 @@ class ReceiptController extends Controller
 
     public function approve($id)
     {
-        $TxnApprove = new TxnApprove();
-        $approve = $TxnApprove->run($id);
+        $approve = RetainerInvoiceService::approve($id);
 
         if ($approve == false)
         {
             return [
                 'status' => false,
-                'messages' => $TxnApprove->errors
+                'messages' => RetainerInvoiceService::$errors
             ];
         }
 
@@ -304,32 +236,6 @@ class ReceiptController extends Controller
         ];
 
     }
-
-    //this class is to be deleted... this feature is more trouble
-    /*public function copy($id)
-    {
-        //load the vue version of the app
-        if (!FacadesRequest::wantsJson()) {
-            return view('l-limitless-bs4.layout_2-ltr-default.appVue');
-        }
-
-        $TxnCopy = new TxnCopy();
-        $txnAttributes = $TxnCopy->run($id);
-
-        $TxnNumber = new TxnNumber();
-        $txnAttributes['number'] = $TxnNumber->run($this->txnEntreeSlug);
-
-        $data = [
-            'pageTitle' => 'Copy Receipts', #required
-            'pageAction' => 'Copy', #required
-            'txnUrlStore' => '/accounting/sales/receipts', #required
-            'txnAttributes' => $txnAttributes, #required
-        ];
-
-        if (FacadesRequest::wantsJson()) {
-            return $data;
-        }
-    }*/
 
     public function debitAccounts()
     {
@@ -435,7 +341,7 @@ class ReceiptController extends Controller
         $query->orderBy('date', 'ASC');
         $query->orderBy('id', 'ASC');
         $query->whereIn('debit_contact_id', $contact_ids);
-        $query->where('balance', '>', 0);
+        $query->whereColumn('total_paid', '<', 'total');
 
         $txns = $query->get();
 
@@ -470,15 +376,12 @@ class ReceiptController extends Controller
                 'invoice_id' => $txn->id,
                 'contact_id' => $txn->debit_contact_id,
                 'description' => 'Invoice #' . $txn->number,
+                'amount' => 0,
+                'taxable_amount' => 0,
                 'displayTotal' => 0,
-                'name' => 'Invoice #' . $txn->number,
-                'quantity' => 1,
-                'rate' => 0,
                 'selectedItem' => json_decode('{}'),
                 'selectedTaxes' => [],
-                'tax_id' => null,
                 'taxes' => [],
-                'total' => 0,
             ];
         }
 
@@ -540,7 +443,6 @@ class ReceiptController extends Controller
         $invoice = Invoice::find($invoice_id);
 
         $notes = '';
-
 
         $last_receipt = Receipt::latest()->first();
         $settings = Setting::first();

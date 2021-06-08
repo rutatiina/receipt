@@ -6,31 +6,17 @@ use Illuminate\Support\Facades\URL;
 use Rutatiina\Receipt\Models\Setting;
 use Rutatiina\Invoice\Models\Invoice;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Request as FacadesRequest;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
-use Illuminate\Support\Facades\View;
 use Rutatiina\FinancialAccounting\Models\Account;
 use Rutatiina\FinancialAccounting\Traits\FinancialAccountingTrait;
 use Rutatiina\Receipt\Models\Receipt;
-use Rutatiina\Banking\Models\Account as BankAccount;
-use Rutatiina\Contact\Models\Contact;
 use Rutatiina\Contact\Traits\ContactTrait;
-use Rutatiina\Receipt\Services\PreValidationService;
 use Rutatiina\Receipt\Services\ReceiptService;
 use Rutatiina\RetainerInvoice\Services\RetainerInvoiceService;
 use Yajra\DataTables\Facades\DataTables;
-
-use Rutatiina\Receipt\Classes\Store as TxnStore;
-use Rutatiina\Receipt\Classes\Approve as TxnApprove;
-use Rutatiina\Receipt\Classes\Read as TxnRead;
-use Rutatiina\Receipt\Classes\Copy as TxnCopy;
-use Rutatiina\Receipt\Classes\Number as TxnNumber;
-use Rutatiina\Receipt\Classes\Edit as TxnEdit;
-use Rutatiina\Receipt\Classes\Update as TxnUpdate;
-use Rutatiina\Receipt\Classes\PreValidation;
 
 //controller not in use
 class ReceiptController extends Controller
@@ -211,7 +197,7 @@ class ReceiptController extends Controller
         {
             return [
                 'status' => false,
-                'messages' => RetainerInvoiceService::$errors
+                'messages' => ReceiptService::$errors
             ];
         }
     }
@@ -234,7 +220,6 @@ class ReceiptController extends Controller
             'status' => true,
             'messages' => ['Receipts approved'],
         ];
-
     }
 
     public function debitAccounts()

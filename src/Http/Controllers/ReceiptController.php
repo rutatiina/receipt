@@ -3,7 +3,7 @@
 namespace Rutatiina\Receipt\Http\Controllers;
 
 use Illuminate\Support\Facades\URL;
-use Rutatiina\Receipt\Models\Setting;
+use Rutatiina\Receipt\Models\ReceiptSetting;
 use Rutatiina\Invoice\Models\Invoice;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Request as FacadesRequest;
@@ -426,7 +426,7 @@ class ReceiptController extends Controller
         $notes = '';
 
         $last_receipt = Receipt::latest()->first();
-        $settings = Setting::first();
+        $settings = ReceiptSetting::first();
 
         $fields = [
             'internal_ref' => $invoice->id,

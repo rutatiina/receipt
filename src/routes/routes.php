@@ -17,7 +17,7 @@ Route::group(['middleware' => ['web', 'auth', 'tenant', 'service.accounting']], 
 
     });
 
-    Route::resource('receipts/settings', 'Rutatiina\Receipt\Http\Controllers\SettingsController');
+    Route::resource('receipts/settings', 'Rutatiina\Receipt\Http\Controllers\ReceiptSettingsController');
     Route::resource('receipts', 'Rutatiina\Receipt\Http\Controllers\ReceiptController');
 
 });

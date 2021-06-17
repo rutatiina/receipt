@@ -4,7 +4,7 @@ namespace Rutatiina\Receipt\Services;
 
 use Illuminate\Support\Facades\Validator;
 use Rutatiina\Contact\Models\Contact;
-use Rutatiina\Receipt\Models\Setting;
+use Rutatiina\Receipt\Models\ReceiptSetting;
 
 class ReceiptValidateService
 {
@@ -57,7 +57,7 @@ class ReceiptValidateService
 
         // << data validation <<------------------------------------------------------------
 
-        $settings = Setting::has('financial_account_to_debit')
+        $settings = ReceiptSetting::has('financial_account_to_debit')
             ->has('financial_account_to_credit')
             ->with(['financial_account_to_debit', 'financial_account_to_credit'])
             ->firstOrFail();

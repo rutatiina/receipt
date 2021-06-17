@@ -5,7 +5,7 @@ namespace Rutatiina\Receipt\Http\Controllers;
 use Illuminate\Support\Facades\Auth;
 use Rutatiina\Invoice\Models\Invoice;
 use Rutatiina\Receipt\Models\Receipt;
-use Rutatiina\Receipt\Models\Setting;
+use Rutatiina\Receipt\Models\ReceiptSetting;
 use URL;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
@@ -55,7 +55,7 @@ class ReceiptOnInvoiceController extends Controller
         $invoice = Invoice::findOrFail($invoiceId);
         $txn = Receipt::latest()->first();
 
-        $settings = Setting::first();
+        $settings = ReceiptSetting::first();
 
         $bankAccounts = collect([]); //BankAccount::with('bank')->get();
         $accountsGroupByType = collect([]); //Account::all()->groupBy('type');
@@ -235,7 +235,7 @@ class ReceiptOnInvoiceController extends Controller
         $invoice = Invoice::findOrFail($request->invoice_id);
         $txn = Receipt::latest()->first();
 
-        $settings = Setting::first();
+        $settings = ReceiptSetting::first();
 
         $bankAccounts = collect([]); //BankAccount::with('bank')->get();
         $accountsGroupByType = collect([]); //Account::all()->groupBy('type');

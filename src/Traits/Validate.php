@@ -5,7 +5,7 @@ namespace Rutatiina\Receipt\Traits;
 use Illuminate\Support\Facades\Validator;
 use Rutatiina\Contact\Models\Contact;
 use Rutatiina\Receipt\Models\Receipt;
-use Rutatiina\Receipt\Models\Setting;
+use Rutatiina\Receipt\Models\ReceiptSetting;
 use Rutatiina\FinancialAccounting\Models\Account;
 use Rutatiina\Tax\Models\Tax;
 
@@ -173,7 +173,7 @@ trait Validate
 
         // << data validation <<------------------------------------------------------------
 
-        $this->settings = Setting::with(['financial_account_to_debit', 'financial_account_to_credit'])->first();
+        $this->settings = ReceiptSetting::with(['financial_account_to_debit', 'financial_account_to_credit'])->first();
 
         if (!$this->settings->financial_account_to_debit && !$this->settings->financial_account_to_credit)
         {

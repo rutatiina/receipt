@@ -11,7 +11,7 @@ use Rutatiina\Receipt\Models\ReceiptItem;
 use Rutatiina\Receipt\Models\ReceiptItemTax;
 use Rutatiina\FinancialAccounting\Services\AccountBalanceUpdateService;
 use Rutatiina\FinancialAccounting\Services\ContactBalanceUpdateService;
-use Rutatiina\Receipt\Models\Setting;
+use Rutatiina\Receipt\Models\ReceiptSetting;
 use Rutatiina\Tax\Models\Tax;
 use \Rutatiina\Receipt\Services\ReceiptApprovalService;
 
@@ -27,7 +27,7 @@ class ReceiptService
     public static function nextNumber()
     {
         $count = Receipt::count();
-        $settings = Setting::first();
+        $settings = ReceiptSetting::first();
 
         return $settings->number_prefix . (str_pad(($count + 1), $settings->minimum_number_length, "0", STR_PAD_LEFT)) . $settings->number_postfix;
     }

@@ -184,7 +184,7 @@ class ReceiptService
 
             if ($Txn->status == 'approved')
             {
-                self::$errors[] = 'Approved Transaction cannot be not be edited';
+                self::$errors[] = 'Approved receipt cannot be not be edited';
                 return false;
             }
 
@@ -279,7 +279,7 @@ class ReceiptService
 
             if ($Txn->status == 'approved')
             {
-                self::$errors[] = 'Approved Transaction cannot be not be deleted';
+                self::$errors[] = 'Approved Receipts(s) cannot be not be deleted';
                 return false;
             }
 

@@ -3,11 +3,13 @@
 namespace Rutatiina\Receipt\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Spatie\Activitylog\Traits\LogsActivity;
 use Rutatiina\Tenant\Scopes\TenantIdScope;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ReceiptLedger extends Model
 {
+    use SoftDeletes;
     use LogsActivity;
 
     protected static $logName = 'TxnLedger';
